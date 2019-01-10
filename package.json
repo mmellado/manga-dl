@@ -1,5 +1,5 @@
 {
-  "name": "pdfmangadl",
+  "name": "mangadl",
   "version": "1.0.0",
   "description": "Application to download Manga from funmanga in PDF format",
   "main": "src/index.js",
@@ -16,9 +16,8 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
-    "cloudflare-bypasser": "^0.0.3",
     "image-size": "^0.7.1",
-    "node-fetch": "^2.3.0",
-    "pdfkit": "^0.8.3"
+    "pdfkit": "^0.8.3",
+    "request-promise": "^4.2.2"
   }
 }

@@ -1,43 +1,64 @@
+/* eslint-disable no-console, no-await-in-loop */
 const fs = require('fs');
-const CloudflareBypasser = require('cloudflare-bypasser');
-const PDF = require('pdfkit');
-const fetch = require('node-fetch');
+const request = require('request-promise');
 const cheerio = require('cheerio');
 const sizeOf = require('image-size');
-const cc = new CloudflareBypasser();
+const PDF = require('pdfkit');
+
+function renderError(func, url, err) {
+  console.error(`Error in ${func} for the following url: ${url}`);
+  console.error(err);
+}
+
+async function requestUrl(url, noEncoding = false) {
+  try {
+    const options = {
+      url,
+      methos: 'GET',
+      headers: {
+        'cache-control': 'no-cache',
+      },
+    };
+    if (noEncoding) {
+      options.encoding = null;
+    }
+    const res = await request(options);
+    return res;
+  } catch (err) {
+    renderError('requestUrl', url, err);
+    return null;
+  }
+}
 
 async function getChaptersFromManga(mangaUrl) {
   try {
-    const res = await cc.request(mangaUrl);
-    const $ = cheerio.load(res.body);
+    const res = await requestUrl(mangaUrl);
+    const $ = cheerio.load(res);
     const $chapters = $('ul.chapter-list a');
     const chapterList = [];
-    console.log($chapters);
     $chapters.each((i, c) =>
       chapterList.push({
         chapter: $(c).text(),
-        url: c.attribs.href + '/all-pages',
+        url: `${c.attribs.href}/all-pages`,
       })
     );
-    console.log(chapterList);
+    return chapterList;
   } catch (err) {
-    console.log('Error in getChaptersFromManga for url', mangaUrl, '\n');
-    console.log(err);
+    renderError('getChaptersFromManga', mangaUrl, err);
     return [];
   }
 }
 
 async function getChapterImages(chapterUrl) {
   try {
-    const res = await cc.request(chapterUrl);
-    const $ = cheerio.load(res.body);
+    const res = await requestUrl(chapterUrl);
+    const $ = cheerio.load(res);
     const $images = $('img.img-responsive');
     const imgArray = [];
     $images.each((i, img) => imgArray.push(img.attribs.src));
     return imgArray;
   } catch (err) {
-    console.log('Error in getChapterImages for url', chapterUrl, '\n');
-    console.log(err);
+    renderError('getChaperImages', chapterUrl, err);
     return [];
   }
 }
@@ -45,32 +66,31 @@ async function getChapterImages(chapterUrl) {
 async function buildPDF(url) {
   try {
     const images = await getChapterImages(url);
-    const firstImage = await fetch(images[0]);
-    const firstBuffer = await firstImage.buffer();
-    const firstImageSize = sizeOf(firstBuffer);
+    const firstImage = await requestUrl(images[0], true);
+    const firstImageSize = sizeOf(firstImage);
     const pdf = new PDF({
       size: [firstImageSize.width, firstImageSize.height],
     });
     pdf.pipe(fs.createWriteStream('./test2.pdf'));
-    await pdf.image(firstBuffer, 0, 0);
+    await pdf.image(firstImage, 0, 0);
 
     const numImages = images.length;
-    for (let i = 1; i < numImages; i++) {
-      const image = await fetch(images[i]);
-      const buffer = await image.buffer();
-      const dimensions = sizeOf(buffer);
-      pdf.addPage({ size: [dimensions.width, dimensions.height] });
-      await pdf.image(buffer, 0, 0);
+    for (let i = 1; i < numImages; i += 1) {
+      const image = await requestUrl(images[i], true);
+      const dimensions = sizeOf(image);
+      pdf.addPage({
+        size: [dimensions.width, dimensions.height],
+      });
+      await pdf.image(image, 0, 0);
       if (i === numImages - 1) {
         pdf.end();
       }
     }
     // pdf.end();
   } catch (err) {
-    console.log('Error in buildPDF for url', url, '\n');
-    console.log(err);
+    renderError('buildPDF', url, err);
   }
 }
 
-getChaptersFromManga('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken');
-// buildPDF('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken/1/all-pages');
+/* getChaptersFromManga('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken'); */
+buildPDF('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken/1/all-pages');
