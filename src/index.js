@@ -1,48 +1,23 @@
-/* eslint-disable no-console, no-await-in-loop */
 const fs = require('fs');
-const request = require('request-promise');
+const path = require('path');
+const mkdir = require('mkdirp-promise');
 const cheerio = require('cheerio');
 const sizeOf = require('image-size');
 const PDF = require('pdfkit');
+const chalk = require('chalk');
+const { request, renderError } = require('./util.js');
+const { loader, killLoader } = require('./loader.js');
 
-function renderError(func, url, err) {
-  console.error(`Error in ${func} for the following url: ${url}`);
-  console.error(err);
-}
-
-async function requestUrl(url, noEncoding = false) {
-  try {
-    const options = {
-      url,
-      methos: 'GET',
-      headers: {
-        'cache-control': 'no-cache',
-      },
-    };
-    if (noEncoding) {
-      options.encoding = null;
-    }
-    const res = await request(options);
-    return res;
-  } catch (err) {
-    renderError('requestUrl', url, err);
-    return null;
-  }
-}
+const OUT_DIR = path.resolve(process.env.HOME, 'manga_dl');
 
 async function getChaptersFromManga(mangaUrl) {
   try {
-    const res = await requestUrl(mangaUrl);
+    const res = await request(mangaUrl);
     const $ = cheerio.load(res);
     const $chapters = $('ul.chapter-list a');
     const chapterList = [];
-    $chapters.each((i, c) =>
-      chapterList.push({
-        chapter: $(c).text(),
-        url: `${c.attribs.href}/all-pages`,
-      })
-    );
-    return chapterList;
+    $chapters.each((i, c) => chapterList.push(`${c.attribs.href}/all-pages`));
+    return chapterList.reverse();
   } catch (err) {
     renderError('getChaptersFromManga', mangaUrl, err);
     return [];
@@ -51,7 +26,7 @@ async function getChaptersFromManga(mangaUrl) {
 
 async function getChapterImages(chapterUrl) {
   try {
-    const res = await requestUrl(chapterUrl);
+    const res = await request(chapterUrl);
     const $ = cheerio.load(res);
     const $images = $('img.img-responsive');
     const imgArray = [];
@@ -63,20 +38,27 @@ async function getChapterImages(chapterUrl) {
   }
 }
 
-async function buildPDF(url) {
+async function buildPDF(url, name, chapter) {
   try {
+    const fileName = `${name}-Chapter-${chapter}`;
+    const destDir = path.resolve(OUT_DIR, name);
+    const filePath = path.resolve(destDir, fileName);
     const images = await getChapterImages(url);
-    const firstImage = await requestUrl(images[0], true);
+    const firstImage = await request(images[0], true);
+    if (!firstImage) {
+      return;
+    }
     const firstImageSize = sizeOf(firstImage);
+    await mkdir(destDir);
     const pdf = new PDF({
       size: [firstImageSize.width, firstImageSize.height],
     });
-    pdf.pipe(fs.createWriteStream('./test2.pdf'));
+    pdf.pipe(fs.createWriteStream(filePath));
     await pdf.image(firstImage, 0, 0);
 
     const numImages = images.length;
     for (let i = 1; i < numImages; i += 1) {
-      const image = await requestUrl(images[i], true);
+      const image = await request(images[i], true);
       const dimensions = sizeOf(image);
       pdf.addPage({
         size: [dimensions.width, dimensions.height],
@@ -92,5 +74,46 @@ async function buildPDF(url) {
   }
 }
 
-/* getChaptersFromManga('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken'); */
-buildPDF('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken/1/all-pages');
+function getMangaName(url) {
+  const parts = url.split('/');
+  return parts[3];
+}
+
+function getChapterNumber(url) {
+  const parts = url.split('/');
+  return parts[4];
+}
+
+async function buildChapter(chapterUrl, name) {
+  const chapter = getChapterNumber(chapterUrl);
+
+  const title = `Chapter ${chapter}`;
+  loader(title);
+  await buildPDF(chapterUrl, name, chapter);
+  killLoader(title);
+}
+
+async function buildSingleChapter(chapterUrl) {
+  const name = getMangaName(chapterUrl);
+  const spacedName = name.split('-').join(' ');
+
+  console.log(`Building files for: ${chalk.bold(spacedName)}`);
+  buildChapter(chapterUrl, name);
+}
+
+async function buildAllChapters(mangaUrl) {
+  const name = getMangaName(mangaUrl);
+  const spacedName = name.split('-').join(' ');
+  const chapters = await getChaptersFromManga(mangaUrl);
+  const numChapters = chapters.length;
+
+  console.log(`Building files for: ${chalk.bold(spacedName)}`);
+  for (let i = 0; i < numChapters; i += 1) {
+    await buildChapter(chapters[i], name);
+  }
+}
+
+module.exports = {
+  buildAllChapters,
+  buildSingleChapter,
+};
