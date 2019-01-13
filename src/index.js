@@ -46,7 +46,7 @@ async function buildPDF(url, name, chapter) {
     const images = await getChapterImages(url);
     const firstImage = await request(images[0], true);
     if (!firstImage) {
-      return;
+      return false;
     }
     const firstImageSize = sizeOf(firstImage);
     await mkdir(destDir);
@@ -68,9 +68,10 @@ async function buildPDF(url, name, chapter) {
         pdf.end();
       }
     }
-    // pdf.end();
+    return true;
   } catch (err) {
     renderError('buildPDF', url, err);
+    return false;
   }
 }
 
@@ -89,8 +90,12 @@ async function buildChapter(chapterUrl, name) {
 
   const title = `Chapter ${chapter}`;
   loader(title);
-  await buildPDF(chapterUrl, name, chapter);
-  killLoader(title);
+  const success = await buildPDF(chapterUrl, name, chapter);
+  if (success) {
+    killLoader(title);
+  } else {
+    killLoader(title, true);
+  }
 }
 
 async function buildSingleChapter(chapterUrl) {
@@ -117,3 +122,5 @@ module.exports = {
   buildAllChapters,
   buildSingleChapter,
 };
+
+buildAllChapters('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken');

@@ -3,13 +3,8 @@ const chalk = require('chalk');
 
 function renderError(func, url, err) {
   if (err.statusCode === 404) {
-    console.log(
-      chalk.red(
-        '\nError retrieving the following image form the requested chapter'
-      )
-    );
-    console.log(chalk.bold(`${chalk.red('✘')}   ${url}`));
-    console.log('Image ignored');
+    process.stdout.write('\r ');
+    process.stdout.write(`\r${chalk.bold(`(404) ${url}`)}\n`);
   } else {
     console.error(`Error in ${func} for the following url: ${url}`);
     console.error(err);

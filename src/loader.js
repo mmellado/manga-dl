@@ -16,10 +16,11 @@ function loader(chapter) {
   }, 150);
 }
 
-function killLoader(chapter) {
+function killLoader(chapter, isError = false) {
+  const icon = isError ? chalk.red('✘') : chalk.green('✔');
   clearInterval(loaderTimer);
   loaderTimer = null;
-  process.stdout.write(`\r${chapter} .......... ${chalk.green('✔')}\n`);
+  process.stdout.write(`\r${chapter} .......... ${icon}\n`);
 }
 
 module.exports = {
