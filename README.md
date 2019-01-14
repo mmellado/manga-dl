@@ -15,7 +15,7 @@ Files are downloaded to `~/manga-dl/[manga name]`
 
 ## Usage
 
-You can download any Manga that is available in [FunManga](https://funmanga.com). All you have to do is find it there, and grab the name from the url
+You can download any Manga that is available in [FunManga](https://funmanga.com). All you have to do is find it there, and grab the name from the url. (`https://www.funmanga.com/one-piece1` => `one-piece1`)
 
 ### Download all chapters
 
@@ -30,14 +30,6 @@ manga-dl [manga-name] -c [chapter number]
 ```
 
 ### Example - All chapters
-
-If you want to download One Piece, you'd find the URL for it in FunManga:
-
-`https://www.funmanga.com/one-piece1`
-
-Then grab the name part from the url: `one-piece1`
-
-Then run the script
 
 ```bash
 manga-dl one-piece1
