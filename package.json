@@ -1,8 +1,9 @@
 {
-  "name": "mangadl",
+  "name": "manga-dl",
   "version": "1.0.0",
   "description": "Application to download Manga from funmanga in PDF format",
   "main": "src/index.js",
+  "bin": { "manga-dl": "./src/cli.js" },
   "author": "Marcos Mellado",
   "license": "MIT",
   "private": false,
