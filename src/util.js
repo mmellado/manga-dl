@@ -32,6 +32,23 @@ async function request(url, noEncoding = false) {
   }
 }
 
+async function validateURL(url) {
+  try {
+    const options = {
+      url,
+      methos: 'GET',
+      headers: {
+        'cache-control': 'no-cache',
+      },
+      resolveWithFullResponse: true,
+    };
+    const res = await requestUrl(options);
+    return res.statusCode === 200 && !res.body.includes('alert alert-warning');
+  } catch (err) {
+    return false;
+  }
+}
+
 function getMangaName(url) {
   const parts = url.split('/');
   return parts[3];
@@ -47,4 +64,5 @@ module.exports = {
   renderError,
   getMangaName,
   getChapterNumber,
+  validateURL,
 };

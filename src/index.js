@@ -122,22 +122,22 @@ async function buildChapter(chapterUrl, name) {
 
 async function buildSingleChapter(chapterUrl) {
   const name = getMangaName(chapterUrl);
-  const spacedName = name.split('-').join(' ');
 
-  console.log(`Building files for: ${chalk.bold(spacedName)}`);
-  buildChapter(chapterUrl, name);
+  console.log('>> Building PDF file');
+  await buildChapter(chapterUrl, name);
+  console.log('>> Success!');
 }
 
 async function buildAllChapters(mangaUrl) {
   const name = getMangaName(mangaUrl);
-  const spacedName = name.split('-').join(' ');
   const chapters = await getChaptersFromManga(mangaUrl);
   const numChapters = chapters.length;
 
-  console.log(`Building files for: ${chalk.bold(spacedName)}`);
+  console.log('>> Building PDF files');
   for (let i = 0; i < numChapters; i += 1) {
     await buildChapter(chapters[i], name);
   }
+  console.log('>> Success!');
 }
 
 module.exports = {

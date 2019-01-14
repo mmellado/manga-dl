@@ -12,7 +12,7 @@ function loader(chapter) {
       counter = 0;
     }
     const icon = icons[counter];
-    process.stdout.write(`\r${chapter} .......... ${chalk.blue(icon)}`);
+    process.stdout.write(`\r    ${chapter} .......... ${chalk.blue(icon)}`);
   }, 150);
 }
 
@@ -20,7 +20,7 @@ function killLoader(chapter, isError = false) {
   const icon = isError ? chalk.red('✘') : chalk.green('✔');
   clearInterval(loaderTimer);
   loaderTimer = null;
-  process.stdout.write(`\r${chapter} .......... ${icon}\n`);
+  process.stdout.write(`\r    ${chapter} .......... ${icon}\n`);
 }
 
 module.exports = {
