@@ -32,7 +32,19 @@ async function request(url, noEncoding = false) {
   }
 }
 
+function getMangaName(url) {
+  const parts = url.split('/');
+  return parts[3];
+}
+
+function getChapterNumber(url) {
+  const parts = url.split('/');
+  return parts[4];
+}
+
 module.exports = {
   request,
   renderError,
+  getMangaName,
+  getChapterNumber,
 };

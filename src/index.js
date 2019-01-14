@@ -5,7 +5,12 @@ const cheerio = require('cheerio');
 const sizeOf = require('image-size');
 const PDF = require('pdfkit');
 const chalk = require('chalk');
-const { request, renderError } = require('./util.js');
+const {
+  request,
+  renderError,
+  getMangaName,
+  getChapterNumber,
+} = require('./util.js');
 const { loader, killLoader } = require('./loader.js');
 
 const OUT_DIR = path.resolve(process.env.HOME, 'manga_dl');
@@ -24,7 +29,7 @@ async function getChaptersFromManga(mangaUrl) {
   }
 }
 
-async function getChapterImages(chapterUrl) {
+async function getImageUrls(chapterUrl) {
   try {
     const res = await request(chapterUrl);
     const $ = cheerio.load(res);
@@ -38,32 +43,59 @@ async function getChapterImages(chapterUrl) {
   }
 }
 
+async function getImageData(imageUrl) {
+  const res = {
+    buffer: null,
+    width: null,
+    height: null,
+  };
+  try {
+    res.buffer = await request(imageUrl, true);
+    if (res.buffer) {
+      const size = sizeOf(res.buffer);
+      res.width = size.width;
+      res.height = size.height;
+    }
+    return res;
+  } catch (err) {
+    renderError('getImageBuffer', imageUrl, err);
+    return res;
+  }
+}
+
+async function addImageToPDF(pdf, img, addPage = true) {
+  try {
+    if (addPage) {
+      pdf.addPage({ size: [img.width, img.height] });
+    }
+    pdf.image(img.buffer, 0, 0);
+  } catch (err) {
+    renderError('addImageToPDF', 'image', err);
+  }
+}
+
 async function buildPDF(url, name, chapter) {
   try {
     const fileName = `${name}-Chapter-${chapter}`;
     const destDir = path.resolve(OUT_DIR, name);
     const filePath = path.resolve(destDir, fileName);
-    const images = await getChapterImages(url);
-    const firstImage = await request(images[0], true);
-    if (!firstImage) {
-      return false;
-    }
-    const firstImageSize = sizeOf(firstImage);
+    const images = await getImageUrls(url);
+    const numImages = images.length;
+    const img = await getImageData(images[0]);
+
+    if (!img.buffer) return false;
+
     await mkdir(destDir);
     const pdf = new PDF({
-      size: [firstImageSize.width, firstImageSize.height],
+      size: [img.width, img.height],
     });
     pdf.pipe(fs.createWriteStream(filePath));
-    await pdf.image(firstImage, 0, 0);
 
-    const numImages = images.length;
+    addImageToPDF(pdf, img, false);
     for (let i = 1; i < numImages; i += 1) {
-      const image = await request(images[i], true);
-      const dimensions = sizeOf(image);
-      pdf.addPage({
-        size: [dimensions.width, dimensions.height],
-      });
-      await pdf.image(image, 0, 0);
+      const image = await getImageData(images[i]);
+      addImageToPDF(pdf, image);
+
       if (i === numImages - 1) {
         pdf.end();
       }
@@ -73,16 +105,6 @@ async function buildPDF(url, name, chapter) {
     renderError('buildPDF', url, err);
     return false;
   }
-}
-
-function getMangaName(url) {
-  const parts = url.split('/');
-  return parts[3];
-}
-
-function getChapterNumber(url) {
-  const parts = url.split('/');
-  return parts[4];
 }
 
 async function buildChapter(chapterUrl, name) {
@@ -122,5 +144,3 @@ module.exports = {
   buildAllChapters,
   buildSingleChapter,
 };
-
-buildAllChapters('https://www.funmanga.com/Tensei-Shitara-Slime-Datta-Ken');
