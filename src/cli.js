@@ -1,6 +1,6 @@
 const { ArgumentParser } = require('argparse');
 const chalk = require('chalk');
-const { validateURL, loader, killLoader } = require('./util.js');
+const { validateURL } = require('./util.js');
 const { buildSingleChapter, buildAllChapters } = require('./index.js');
 const pkg = require('../package.json');
 
