@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const { ArgumentParser } = require('argparse');
 const chalk = require('chalk');
 const { validateURL } = require('./util.js');

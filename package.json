@@ -1,6 +1,6 @@
 {
   "name": "manga-dl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Application to download Manga from funmanga in PDF format",
   "main": "src/index.js",
   "bin": { "manga-dl": "./src/cli.js" },
