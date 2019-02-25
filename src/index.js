@@ -13,7 +13,9 @@ const {
 } = require('./util.js');
 const { loader, killLoader } = require('./loader.js');
 
-const OUT_DIR = path.resolve(process.env.HOME, 'manga_dl');
+const OUT_DIR = path.resolve( process.env.HOME ||
+                              process.env.HOMEPATH ||
+                              process.env.USERPROFILE, 'manga_dl');
 
 async function getChaptersFromManga(mangaUrl) {
   try {
